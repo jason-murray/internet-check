@@ -1,0 +1,15 @@
+services:
+  internet-check:
+    build: .
+    container_name: internet-check
+    restart: unless-stopped
+    environment:
+      - PING_TARGETS=8.8.8.8,1.1.1.1,9.9.9.9
+      - CHECK_INTERVAL_SECONDS=30
+      - FAILURE_THRESHOLD=3
+      - COOLDOWN_SECONDS=300
+      - PING_TIMEOUT_SECONDS=5
+    volumes:
+      - ./example-action.sh:/action.sh:ro
+    # Uncomment if your action script needs SSH access:
+    # - ~/.ssh/id_rsa:/home/appuser/.ssh/id_rsa:ro
