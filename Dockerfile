@@ -3,6 +3,7 @@ FROM python:3.12-slim
 # Install iputils-ping for ping command
 RUN apt-get update && apt-get install -y --no-install-recommends \
     iputils-ping \
+    openssh-client \
     && rm -rf /var/lib/apt/lists/*
 
 # Create non-root user
