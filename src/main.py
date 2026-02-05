@@ -1,9 +1,22 @@
 #!/usr/bin/env python3
 """Internet connectivity health checker with failure action."""
 
+import json
 import os
 import sys
 from dataclasses import dataclass
+from datetime import datetime, timezone
+
+
+def log(level: str, event: str, **kwargs):
+    """Output a structured JSON log entry."""
+    entry = {
+        "ts": datetime.now(timezone.utc).isoformat().replace("+00:00", "Z"),
+        "level": level,
+        "event": event,
+        **kwargs,
+    }
+    print(json.dumps(entry), flush=True)
 
 
 @dataclass
@@ -19,12 +32,12 @@ def load_config() -> Config:
     """Load configuration from environment variables."""
     ping_targets_raw = os.environ.get("PING_TARGETS", "")
     if not ping_targets_raw:
-        print('{"level":"error","event":"config_error","message":"PING_TARGETS is required"}')
+        log("error", "config_error", message="PING_TARGETS is required")
         sys.exit(1)
 
     ping_targets = [t.strip() for t in ping_targets_raw.split(",") if t.strip()]
     if not ping_targets:
-        print('{"level":"error","event":"config_error","message":"PING_TARGETS must contain at least one target"}')
+        log("error", "config_error", message="PING_TARGETS must contain at least one target")
         sys.exit(1)
 
     return Config(
@@ -38,7 +51,13 @@ def load_config() -> Config:
 
 def main():
     config = load_config()
-    print(f"Config loaded: {config}")
+    log("info", "startup", config={
+        "ping_targets": config.ping_targets,
+        "check_interval_seconds": config.check_interval_seconds,
+        "failure_threshold": config.failure_threshold,
+        "cooldown_seconds": config.cooldown_seconds,
+        "ping_timeout_seconds": config.ping_timeout_seconds,
+    })
 
 
 if __name__ == "__main__":
