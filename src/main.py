@@ -143,6 +143,36 @@ def main():
         "ping_timeout_seconds": config.ping_timeout_seconds,
     })
 
+    failure_count = 0
+
+    while True:
+        any_reachable = check_connectivity(config.ping_targets, config.ping_timeout_seconds)
+
+        if any_reachable:
+            failure_count = 0
+            write_health_status(healthy=True)
+            log("info", "check_complete", all_failed=False, failure_count=failure_count)
+        else:
+            failure_count += 1
+            write_health_status(healthy=False)
+            level = "warn" if failure_count < config.failure_threshold else "error"
+            log(level, "check_complete", all_failed=True, failure_count=failure_count)
+
+            if failure_count >= config.failure_threshold:
+                execute_action()
+
+                # Enter cooldown
+                log("info", "cooldown_started", duration_seconds=config.cooldown_seconds)
+                time.sleep(config.cooldown_seconds)
+                log("info", "cooldown_complete")
+
+                # Reset after cooldown
+                failure_count = 0
+                write_health_status(healthy=False)  # Still unhealthy until next successful check
+                continue  # Skip the normal sleep, go straight to next check
+
+        time.sleep(config.check_interval_seconds)
+
 
 if __name__ == "__main__":
     main()
