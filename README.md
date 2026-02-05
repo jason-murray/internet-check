@@ -2,6 +2,8 @@
 
 A lightweight Docker container that monitors internet connectivity and executes a custom action when connectivity is lost.
 
+I created this to reboot an SFP+ module running 8311 fw when WAN goes down, so some of the examples relate to this setup.
+
 ## Quick Start
 
 1. Create your action script:
@@ -9,7 +11,7 @@ A lightweight Docker container that monitors internet connectivity and executes 
 ```bash
 #!/bin/bash
 # Runs when internet connectivity is lost
-ssh user@192.168.1.1 "reboot"
+ssh root@192.168.11.1 "reboot"
 ```
 
 2. Run the container:
@@ -85,21 +87,5 @@ JSON structured logs to stdout:
 
 ```bash
 #!/bin/bash
-ssh -o StrictHostKeyChecking=no -o ConnectTimeout=10 admin@192.168.1.1 "reboot"
-```
-
-### Notification Only
-
-```bash
-#!/bin/bash
-curl -X POST https://ntfy.sh/my-alerts -d "Internet connectivity lost"
-```
-
-### Multiple Actions
-
-```bash
-#!/bin/bash
-curl -X POST https://ntfy.sh/my-alerts -d "Internet down - rebooting modem"
-sleep 2
-ssh admin@192.168.1.1 "reboot"
+ssh -o StrictHostKeyChecking=no -o ConnectTimeout=10 root@192.168.11.1 "reboot"
 ```
