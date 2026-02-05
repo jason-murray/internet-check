@@ -10,6 +10,7 @@ from dataclasses import dataclass
 from datetime import datetime, timezone
 
 HEALTH_FILE = "/tmp/health_status"
+ACTION_SCRIPT = "/action.sh"
 
 
 def write_health_status(healthy: bool):
@@ -17,6 +18,37 @@ def write_health_status(healthy: bool):
     status = "healthy" if healthy else "unhealthy"
     with open(HEALTH_FILE, "w") as f:
         f.write(status)
+
+
+def execute_action() -> tuple[int, int]:
+    """
+    Execute the failure action script.
+    Returns (exit_code, duration_ms).
+    """
+    log("error", "action_triggered")
+    start = time.monotonic()
+
+    try:
+        result = subprocess.run(
+            [ACTION_SCRIPT],
+            capture_output=True,
+            text=True,
+        )
+        duration_ms = int((time.monotonic() - start) * 1000)
+        log("info", "action_complete", exit_code=result.returncode, duration_ms=duration_ms)
+        if result.stdout:
+            log("info", "action_stdout", output=result.stdout.strip())
+        if result.stderr:
+            log("warn", "action_stderr", output=result.stderr.strip())
+        return result.returncode, duration_ms
+    except FileNotFoundError:
+        duration_ms = int((time.monotonic() - start) * 1000)
+        log("error", "action_failed", error="action script not found", path=ACTION_SCRIPT)
+        return 127, duration_ms
+    except Exception as e:
+        duration_ms = int((time.monotonic() - start) * 1000)
+        log("error", "action_failed", error=str(e))
+        return 1, duration_ms
 
 
 def log(level: str, event: str, **kwargs):
