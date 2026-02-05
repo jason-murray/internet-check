@@ -9,6 +9,15 @@ import time
 from dataclasses import dataclass
 from datetime import datetime, timezone
 
+HEALTH_FILE = "/tmp/health_status"
+
+
+def write_health_status(healthy: bool):
+    """Write current health status to file for Docker healthcheck."""
+    status = "healthy" if healthy else "unhealthy"
+    with open(HEALTH_FILE, "w") as f:
+        f.write(status)
+
 
 def log(level: str, event: str, **kwargs):
     """Output a structured JSON log entry."""
