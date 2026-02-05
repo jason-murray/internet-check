@@ -3,7 +3,9 @@
 
 import json
 import os
+import subprocess
 import sys
+import time
 from dataclasses import dataclass
 from datetime import datetime, timezone
 
@@ -17,6 +19,47 @@ def log(level: str, event: str, **kwargs):
         **kwargs,
     }
     print(json.dumps(entry), flush=True)
+
+
+def ping(target: str, timeout_seconds: int) -> tuple[bool, int | None, str | None]:
+    """
+    Ping a target and return (success, latency_ms, error).
+    """
+    start = time.monotonic()
+    try:
+        result = subprocess.run(
+            ["ping", "-c", "1", "-W", str(timeout_seconds), target],
+            capture_output=True,
+            text=True,
+            timeout=timeout_seconds + 1,
+        )
+        latency_ms = int((time.monotonic() - start) * 1000)
+        if result.returncode == 0:
+            return True, latency_ms, None
+        else:
+            return False, None, "unreachable"
+    except subprocess.TimeoutExpired:
+        return False, None, "timeout"
+    except Exception as e:
+        return False, None, str(e)
+
+
+def check_connectivity(targets: list[str], timeout_seconds: int) -> bool:
+    """
+    Ping all targets. Returns True if ANY target is reachable.
+    """
+    log("info", "check_started", targets=targets)
+
+    any_success = False
+    for target in targets:
+        success, latency_ms, error = ping(target, timeout_seconds)
+        if success:
+            log("info", "check_result", target=target, success=True, latency_ms=latency_ms)
+            any_success = True
+        else:
+            log("info", "check_result", target=target, success=False, error=error)
+
+    return any_success
 
 
 @dataclass
