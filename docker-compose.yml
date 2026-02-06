@@ -12,4 +12,4 @@ services:
     volumes:
       - ./action.sh:/action.sh:ro
     # Uncomment if your action script needs SSH access:
-    # - ~/.ssh/id_rsa:/home/appuser/.ssh/id_rsa:ro
+    # - /home/user/.ssh/id_rsa:/home/appuser/.ssh/id_rsa:ro
