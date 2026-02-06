@@ -20,6 +20,7 @@ ssh root@192.168.11.1 "reboot"
 docker run -d \
   -e PING_TARGETS="8.8.8.8,1.1.1.1,9.9.9.9" \
   -v /path/to/your/action.sh:/action.sh:ro \
+  -v /path/to/your/id_rsa:/home/appuser/.ssh/id_rsa:ro \
   internet-check
 ```
 
@@ -56,7 +57,7 @@ services:
     volumes:
       - ./action.sh:/action.sh:ro
       # For SSH-based actions:
-      # - ~/.ssh/id_rsa:/home/appuser/.ssh/id_rsa:ro
+      - /home/user/.ssh/id_rsa:/home/appuser/.ssh/id_rsa:ro
 ```
 
 ## Health Check
@@ -79,13 +80,4 @@ JSON structured logs to stdout:
 {"ts":"2024-02-05T12:30:00Z","level":"info","event":"startup","config":{...}}
 {"ts":"2024-02-05T12:30:01Z","level":"info","event":"check_result","target":"8.8.8.8","success":true,"latency_ms":12}
 {"ts":"2024-02-05T12:30:01Z","level":"error","event":"action_triggered"}
-```
-
-## Example Action Scripts
-
-### SSH Reboot
-
-```bash
-#!/bin/bash
-ssh -o StrictHostKeyChecking=no -o ConnectTimeout=10 root@192.168.11.1 "reboot"
 ```

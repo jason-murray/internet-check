@@ -10,6 +10,6 @@ services:
       - COOLDOWN_SECONDS=300
       - PING_TIMEOUT_SECONDS=5
     volumes:
-      - ./example-action.sh:/action.sh:ro
+      - ./action.sh:/action.sh:ro
     # Uncomment if your action script needs SSH access:
-    # - ~/.ssh/id_rsa:/home/appuser/.ssh/id_rsa:ro
+    # - /home/user/.ssh/id_rsa:/home/appuser/.ssh/id_rsa:ro
