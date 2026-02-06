@@ -33,6 +33,7 @@ docker run -d \
 | `FAILURE_THRESHOLD` | No | `3` | Consecutive failures before action triggers |
 | `COOLDOWN_SECONDS` | No | `300` | Seconds to wait after action before resuming checks |
 | `PING_TIMEOUT_SECONDS` | No | `5` | Timeout for each ping |
+| `LOG_LEVEL` | No | `info` | Minimum log level: `debug`, `info`, `warn`, `error` |
 
 ## How It Works
 
@@ -74,10 +75,15 @@ docker inspect --format='{{.State.Health.Status}}' internet-check
 
 ## Logging
 
-JSON structured logs to stdout:
+JSON structured logs to stdout. Use `LOG_LEVEL` to control verbosity:
+
+- **debug**: All events including per-ping results
+- **info**: Startup and state transitions (default)
+- **warn**: Individual failures and action results
+- **error**: All-failed checks and action triggers only
 
 ```json
 {"ts":"2024-02-05T12:30:00Z","level":"info","event":"startup","config":{...}}
-{"ts":"2024-02-05T12:30:01Z","level":"info","event":"check_result","target":"8.8.8.8","success":true,"latency_ms":12}
+{"ts":"2024-02-05T12:30:01Z","level":"error","event":"check_complete","all_failed":true,"failure_count":3}
 {"ts":"2024-02-05T12:30:01Z","level":"error","event":"action_triggered"}
 ```

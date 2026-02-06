@@ -9,6 +9,7 @@ services:
       - FAILURE_THRESHOLD=3
       - COOLDOWN_SECONDS=300
       - PING_TIMEOUT_SECONDS=5
+      - LOG_LEVEL=info  # debug, info, warn, error
     volumes:
       - ./action.sh:/action.sh:ro
     # Uncomment if your action script needs SSH access:

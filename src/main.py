@@ -11,6 +11,14 @@ from datetime import datetime, timezone
 
 HEALTH_FILE = "/tmp/health_status"
 ACTION_SCRIPT = "/action.sh"
+LOG_LEVELS = {"debug": 0, "info": 1, "warn": 2, "error": 3}
+_min_log_level = 1  # default to info
+
+
+def set_log_level(level: str):
+    """Set the minimum log level for output filtering."""
+    global _min_log_level
+    _min_log_level = LOG_LEVELS.get(level.lower(), 1)
 
 
 def write_health_status(healthy: bool):
@@ -35,9 +43,9 @@ def execute_action() -> tuple[int, int]:
             text=True,
         )
         duration_ms = int((time.monotonic() - start) * 1000)
-        log("info", "action_complete", exit_code=result.returncode, duration_ms=duration_ms)
+        log("warn", "action_complete", exit_code=result.returncode, duration_ms=duration_ms)
         if result.stdout:
-            log("info", "action_stdout", output=result.stdout.strip())
+            log("warn", "action_stdout", output=result.stdout.strip())
         if result.stderr:
             log("warn", "action_stderr", output=result.stderr.strip())
         return result.returncode, duration_ms
@@ -52,7 +60,9 @@ def execute_action() -> tuple[int, int]:
 
 
 def log(level: str, event: str, **kwargs):
-    """Output a structured JSON log entry."""
+    """Output a structured JSON log entry if level meets threshold."""
+    if LOG_LEVELS.get(level, 1) < _min_log_level:
+        return
     entry = {
         "ts": datetime.now(timezone.utc).isoformat().replace("+00:00", "Z"),
         "level": level,
@@ -89,16 +99,16 @@ def check_connectivity(targets: list[str], timeout_seconds: int) -> bool:
     """
     Ping all targets. Returns True if ANY target is reachable.
     """
-    log("info", "check_started", targets=targets)
+    log("debug", "check_started", targets=targets)
 
     any_success = False
     for target in targets:
         success, latency_ms, error = ping(target, timeout_seconds)
         if success:
-            log("info", "check_result", target=target, success=True, latency_ms=latency_ms)
+            log("debug", "check_result", target=target, success=True, latency_ms=latency_ms)
             any_success = True
         else:
-            log("info", "check_result", target=target, success=False, error=error)
+            log("warn", "check_result", target=target, success=False, error=error)
 
     return any_success
 
@@ -110,6 +120,7 @@ class Config:
     failure_threshold: int
     cooldown_seconds: int
     ping_timeout_seconds: int
+    log_level: str
 
 
 def load_config() -> Config:
@@ -130,17 +141,20 @@ def load_config() -> Config:
         failure_threshold=int(os.environ.get("FAILURE_THRESHOLD", "3")),
         cooldown_seconds=int(os.environ.get("COOLDOWN_SECONDS", "300")),
         ping_timeout_seconds=int(os.environ.get("PING_TIMEOUT_SECONDS", "5")),
+        log_level=os.environ.get("LOG_LEVEL", "info"),
     )
 
 
 def main():
     config = load_config()
+    set_log_level(config.log_level)
     log("info", "startup", config={
         "ping_targets": config.ping_targets,
         "check_interval_seconds": config.check_interval_seconds,
         "failure_threshold": config.failure_threshold,
         "cooldown_seconds": config.cooldown_seconds,
         "ping_timeout_seconds": config.ping_timeout_seconds,
+        "log_level": config.log_level,
     })
 
     failure_count = 0
@@ -151,12 +165,11 @@ def main():
         if any_reachable:
             failure_count = 0
             write_health_status(healthy=True)
-            log("info", "check_complete", all_failed=False, failure_count=failure_count)
+            log("debug", "check_complete", all_failed=False, failure_count=failure_count)
         else:
             failure_count += 1
             write_health_status(healthy=False)
-            level = "warn" if failure_count < config.failure_threshold else "error"
-            log(level, "check_complete", all_failed=True, failure_count=failure_count)
+            log("error", "check_complete", all_failed=True, failure_count=failure_count)
 
             if failure_count >= config.failure_threshold:
                 execute_action()
